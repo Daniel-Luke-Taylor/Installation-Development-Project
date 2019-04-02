@@ -2,19 +2,39 @@ import processing.serial.*;
 import cc.arduino.*;
 import org.firmata.*;
 Arduino arduino;
+
+//set analog pins for servos ~
+int servo1 = 5, servo2 = 3; //3 is taped;
+int led1 = 13, led2 = 12;
+int servo1CurrentPos, servo1MinPos = 10, servo1MaxPos = 30;
+boolean servo1true, servo2true;
+int servo2CurrentPos, servo2MinPos = 0, servo2MaxPos = 30;
+
 import KinectPV2.*;
 KinectPV2 kinect;
 
+int leftCheck = 160, rightCheck = 360;  //Set these on the mid point of hands/playertokens
+
 void setup() {   
   size(1024, 425);
+  
   arduino = new Arduino(this, Arduino.list() [0], 57600);
-  arduino.pinMode(13, Arduino.OUTPUT);
+  arduino.pinMode(servo1, Arduino.SERVO);
+  arduino.pinMode(servo2, Arduino.SERVO);
+  arduino.pinMode(led1, Arduino.OUTPUT);
+  arduino.pinMode(led2, Arduino.OUTPUT);
+  
   kinect = new KinectPV2(this);
   kinect.enableDepthMaskImg(true);
   kinect.enableSkeletonDepthMap(true);
   kinect.init();
+  
+  println(arduino.analogRead(servo1));
+  println(arduino.analogRead(servo2));
+  arduino.servoWrite(servo2, servo2MinPos);
+  arduino.servoWrite(servo1, servo1MaxPos);
 }  
-void draw() {   
+void draw() {
   background(0);   
   image(kinect.getDepthMaskImage(), 0, 0);
   textSize(32);
@@ -23,15 +43,15 @@ void draw() {
   ArrayList<KSkeleton> skeletonArray =  kinect.getSkeletonDepthMap();
 
   if(skeletonArray.size() == 0){ 
-    arduino.digitalWrite(13, Arduino.LOW);
     //Player text
     fill(100, 100, 100);
     text("Player 1:", 550, 30); 
     fill(100, 100, 100);
     text("Player 2:", 550, 150); 
+    arduino.servoWrite(servo2, servo2MinPos);
+    arduino.servoWrite(servo1, servo1MaxPos);
   }
   else if(skeletonArray.size() == 1){
-    arduino.digitalWrite(13, Arduino.HIGH);
     //Player text
     fill(255, 0, 0);
     text("Player 1:", 550, 30);
@@ -45,7 +65,6 @@ void draw() {
     getHand(joints1[KinectPV2.JointType_HandLeft], joints1[KinectPV2.JointType_HandRight], null, null, false);
   }
   else if(skeletonArray.size() == 2){
-    arduino.digitalWrite(13, Arduino.HIGH);
     //Player text
     fill(255, 0, 0);
     text("Player 1:", 550, 30);
@@ -63,12 +82,14 @@ void draw() {
   else{
     fill(255, 255, 255);
     text("Spooky Scary Skeleton Overload", 550, 30);
+    arduino.servoWrite(servo2, servo2MinPos);
+    arduino.servoWrite(servo1, servo1MaxPos);
   }
 }
   
 void getHand(KJoint left1, KJoint right1, KJoint left2, KJoint right2, boolean multi){
     
-    //multiplayer
+    //multiplayer--------------------------------------------------------------------------------------------------
     if(multi){
       //player 1
       //Print Hand pos
@@ -111,8 +132,44 @@ void getHand(KJoint left1, KJoint right1, KJoint left2, KJoint right2, boolean m
       //Draw player Token
       fill(0, 0, 255);
       circle((right2.getX()/2)+(left2.getX()/2),(right2.getY()/2)+(left2.getY()/2),50);
+      
+      //move servo
+      //get left and right
+      float left, right;
+      float player1pos = (right1.getX()/2)+(left1.getX()/2), player2pos = (right2.getX()/2)+(left2.getX()/2);
+      if(player1pos < player2pos){ //check if > or < is correct
+        left = player1pos;
+        right = player2pos;
+      }
+      else{
+        left = player2pos;
+        right = player1pos;
+      }
+      
+      //left servo
+      if(left > leftCheck && !servo2true){
+        servo2true = true;
+        arduino.servoWrite(servo2, servo2MinPos);
+        arduino.digitalWrite(led1, Arduino.HIGH);
+      }
+      else if (left < leftCheck && servo2true){
+        servo2true = false;
+        arduino.servoWrite(servo2, servo2MaxPos);
+        arduino.digitalWrite(led1, Arduino.LOW);
+      }
+      //right servo
+      if(right < rightCheck && !servo1true){
+        servo1true = true;
+        arduino.servoWrite(servo1, servo1MaxPos);
+        arduino.digitalWrite(led2, Arduino.HIGH);
+      }
+      else if(right > rightCheck && servo1true){
+        servo1true = false;
+        arduino.servoWrite(servo1, servo1MinPos);
+        arduino.digitalWrite(led2, Arduino.LOW);
+      }
     }
-    //singleplayer
+    //singleplayer------------------------------------------------------------------------------------------
     else{
       //Print Hand pos
       //Left
@@ -133,7 +190,29 @@ void getHand(KJoint left1, KJoint right1, KJoint left2, KJoint right2, boolean m
       //Draw player Token
       fill(255, 0, 0);
       circle((right1.getX()/2)+(left1.getX()/2),(right1.getY()/2)+(left1.getY()/2),50);
-      
+      //move servos--------------------------------------------------------------------------------------------
+      //left servo
+      if(left1.getX() > leftCheck && !servo2true){
+        servo2true = true;
+        arduino.servoWrite(servo2, servo2MaxPos);
+        arduino.digitalWrite(led1, Arduino.HIGH);
+      }
+      else if (left1.getX() < leftCheck && servo2true){
+        servo2true = false;
+        arduino.servoWrite(servo2, servo2MinPos);
+        arduino.digitalWrite(led1, Arduino.LOW);
+      }
+      //right servo
+      if(right1.getX() < rightCheck && !servo1true){
+        servo1true = true;
+        arduino.servoWrite(servo1, servo1MinPos);
+        arduino.digitalWrite(led2, Arduino.HIGH);
+      }
+      else if(right1.getX() > rightCheck && servo1true){
+        servo1true = false;
+        arduino.servoWrite(servo1, servo1MaxPos);
+        arduino.digitalWrite(led2, Arduino.LOW);
+      }
     }
       
   }
