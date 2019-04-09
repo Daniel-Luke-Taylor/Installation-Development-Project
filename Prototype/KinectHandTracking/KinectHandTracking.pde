@@ -13,7 +13,7 @@ int servo2CurrentPos, servo2MinPos = 0, servo2MaxPos = 30;
 import KinectPV2.*;
 KinectPV2 kinect;
 
-int leftCheck = 160, rightCheck = 360;  //Set these on the mid point of hands/playertokens
+int leftCheck = 173, rightCheck = 328;  //Set these on the mid point of hands/playertokens
 
 void setup() {   
   size(1024, 425);
@@ -149,23 +149,23 @@ void getHand(KJoint left1, KJoint right1, KJoint left2, KJoint right2, boolean m
       //left servo
       if(left > leftCheck && !servo2true){
         servo2true = true;
-        arduino.servoWrite(servo2, servo2MinPos);
+        arduino.servoWrite(servo2, servo2MaxPos);
         arduino.digitalWrite(led1, Arduino.HIGH);
       }
       else if (left < leftCheck && servo2true){
         servo2true = false;
-        arduino.servoWrite(servo2, servo2MaxPos);
+        arduino.servoWrite(servo2, servo2MinPos);
         arduino.digitalWrite(led1, Arduino.LOW);
       }
       //right servo
       if(right < rightCheck && !servo1true){
         servo1true = true;
-        arduino.servoWrite(servo1, servo1MaxPos);
+        arduino.servoWrite(servo1, servo1MinPos);
         arduino.digitalWrite(led2, Arduino.HIGH);
       }
       else if(right > rightCheck && servo1true){
         servo1true = false;
-        arduino.servoWrite(servo1, servo1MinPos);
+        arduino.servoWrite(servo1, servo1MaxPos);
         arduino.digitalWrite(led2, Arduino.LOW);
       }
     }
